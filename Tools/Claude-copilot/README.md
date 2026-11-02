@@ -24,6 +24,11 @@ COPILOT_MODEL=claude-opus-5-5 claude-copilot claude
 COPILOT_FAST_MODEL=claude-haiku-4-5 claude-copilot code ~/progetto
 ```
 
+Tipo di account Copilot: `business` di default (`COPILOT_ACCOUNT_TYPE=individual|business|enterprise`).
+Deve corrispondere all'endpoint assegnato da GitHub al proprio posto: per questo account
+(abbonamento aziendale) GitHub restituisce `sku: copilot_for_business_seat_quota` ed endpoint
+`api.business.githubcopilot.com`; con `enterprise` copilot-api fallisce ("Failed to get models").
+
 Dentro la sessione si può usare `/model` (anche dal menu). Per i modelli non Claude
 usare il nome esatto Copilot, es. `/model gpt-6-sol`.
 

@@ -13,6 +13,7 @@ PROXY_PORT=4141
 SHIM_PORT=4142
 MAIN_MODEL="${COPILOT_MODEL:-claude-sonnet-5-5}"
 FAST_MODEL="${COPILOT_FAST_MODEL:-claude-haiku-4-5}"
+ACCOUNT_TYPE="${COPILOT_ACCOUNT_TYPE:-business}"   # individual | business | enterprise
 
 listening() { lsof -iTCP:$1 -sTCP:LISTEN -t 2>/dev/null | head -1; }
 
@@ -23,8 +24,8 @@ wait_port() {
 
 start() {
   if [[ -z "$(listening $PROXY_PORT)" ]]; then
-    echo "• avvio copilot-api sulla porta $PROXY_PORT..."
-    (cd "$DIR" && nohup npx -y copilot-api@0.7.0 start -p $PROXY_PORT > "$RUN/proxy.log" 2>&1 &)
+    echo "• avvio copilot-api sulla porta $PROXY_PORT (account $ACCOUNT_TYPE)..."
+    (cd "$DIR" && nohup npx -y copilot-api@0.7.0 start -p $PROXY_PORT -a $ACCOUNT_TYPE > "$RUN/proxy.log" 2>&1 &)
     if ! wait_port $PROXY_PORT; then
       echo "✗ copilot-api non parte. Log: $RUN/proxy.log"
       grep -i "login/device" "$RUN/proxy.log" && echo "  → serve il login GitHub: apri il link e inserisci il codice, poi rilancia."
