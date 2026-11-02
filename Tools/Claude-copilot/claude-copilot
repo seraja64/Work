@@ -1,0 +1,81 @@
+#!/bin/zsh
+# claude-copilot: usa Claude Code con i modelli di GitHub Copilot.
+#   claude-copilot start           avvia proxy (4141) + filtro (4142)
+#   claude-copilot stop            ferma entrambi
+#   claude-copilot status          mostra lo stato
+#   claude-copilot logs            segue i log
+#   claude-copilot claude [args]   avvia (se serve) e lancia claude nella shell
+#   claude-copilot code [path]     avvia (se serve) e apre VS Code con il plugin collegato a Copilot
+
+DIR="$HOME/copilot-claude"
+RUN="$DIR/run"; mkdir -p "$RUN"
+PROXY_PORT=4141
+SHIM_PORT=4142
+MAIN_MODEL="${COPILOT_MODEL:-claude-sonnet-5-5}"
+FAST_MODEL="${COPILOT_FAST_MODEL:-claude-haiku-4-5}"
+
+listening() { lsof -iTCP:$1 -sTCP:LISTEN -t 2>/dev/null | head -1; }
+
+wait_port() {
+  for i in {1..60}; do [[ -n "$(listening $1)" ]] && return 0; sleep 1; done
+  return 1
+}
+
+start() {
+  if [[ -z "$(listening $PROXY_PORT)" ]]; then
+    echo "• avvio copilot-api sulla porta $PROXY_PORT..."
+    (cd "$DIR" && nohup npx -y copilot-api@0.7.0 start -p $PROXY_PORT > "$RUN/proxy.log" 2>&1 &)
+    if ! wait_port $PROXY_PORT; then
+      echo "✗ copilot-api non parte. Log: $RUN/proxy.log"
+      grep -i "login/device" "$RUN/proxy.log" && echo "  → serve il login GitHub: apri il link e inserisci il codice, poi rilancia."
+      return 1
+    fi
+  fi
+  if [[ -z "$(listening $SHIM_PORT)" ]]; then
+    echo "• avvio filtro sulla porta $SHIM_PORT..."
+    (cd "$DIR" && nohup node shim.mjs > "$RUN/shim.log" 2>&1 &)
+    wait_port $SHIM_PORT || { echo "✗ filtro non parte. Log: $RUN/shim.log"; return 1; }
+  fi
+  echo "✓ pronto: proxy :$PROXY_PORT (pid $(listening $PROXY_PORT)), filtro :$SHIM_PORT (pid $(listening $SHIM_PORT))"
+}
+
+stop() {
+  for p in $SHIM_PORT $PROXY_PORT; do
+    pid=$(listening $p); [[ -n "$pid" ]] && kill $pid && echo "• fermato :$p (pid $pid)"
+  done
+  echo "✓ fermato"
+}
+
+status() {
+  for p in $PROXY_PORT $SHIM_PORT; do
+    pid=$(listening $p); [[ -n "$pid" ]] && echo "✓ :$p attivo (pid $pid)" || echo "✗ :$p spento"
+  done
+}
+
+export_env() {
+  export ANTHROPIC_BASE_URL="http://localhost:$SHIM_PORT"
+  export ANTHROPIC_AUTH_TOKEN="dummy"
+  export ANTHROPIC_MODEL="$MAIN_MODEL"
+  export ANTHROPIC_SMALL_FAST_MODEL="$FAST_MODEL"
+  export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+}
+
+case "$1" in
+  start)  start ;;
+  stop)   stop ;;
+  status) status ;;
+  logs)   tail -f "$RUN/proxy.log" "$RUN/shim.log" ;;
+  claude)
+    shift; start || exit 1; export_env
+    exec claude "$@" ;;
+  code)
+    shift; start || exit 1
+    if pgrep -xq "Code" || pgrep -f "Visual Studio Code.app/Contents/MacOS" >/dev/null; then
+      echo "⚠ VS Code è già aperto: chiudilo del tutto (Cmd+Q) e rilancia, altrimenti non riceve le variabili."
+      exit 1
+    fi
+    export_env
+    code "${@:-.}" ;;
+  *)
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac
