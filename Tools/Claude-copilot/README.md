@@ -33,7 +33,7 @@ usare il nome esatto Copilot, es. `/model gpt-6-sol`.
 
 | File | Ruolo |
 |---|---|
-| `claude-copilot` | script di gestione (collegato in `~/.local/bin/claude-copilot`) |
+| `claude-copilot` | script di gestione (collegato in `~/.local/bin/claude-copilot`; usa la propria cartella reale) |
 | `shim.mjs` | filtro HTTP tra Claude Code e copilot-api |
 | `run/` | log di proxy e filtro (riscritti a ogni avvio, esclusi da git) |
 
@@ -55,6 +55,13 @@ Claude Code 2.1.316 e i modelli Claude recenti ci sono tre incompatibilità:
 Il filtro ascolta solo su `127.0.0.1`.
 
 ## Prerequisiti e setup
+
+Installazione (copia di lavoro in `~/Work`):
+
+```bash
+git clone https://github.com/seraja64/Work ~/Work
+ln -sfn ~/Work/Tools/Claude-copilot/claude-copilot ~/.local/bin/claude-copilot
+```
 
 - Node.js (usato `npx copilot-api@0.7.0`, versione fissata)
 - Claude Code CLI (`~/.local/bin/claude`) e/o plugin VS Code, comando `code` nel PATH

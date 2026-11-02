@@ -7,7 +7,7 @@
 #   claude-copilot claude [args]   avvia (se serve) e lancia claude nella shell
 #   claude-copilot code [path]     avvia (se serve) e apre VS Code con il plugin collegato a Copilot
 
-DIR="$HOME/copilot-claude"
+DIR="${0:A:h}"   # cartella reale dello script (segue il link in ~/.local/bin)
 RUN="$DIR/run"; mkdir -p "$RUN"
 PROXY_PORT=4141
 SHIM_PORT=4142
